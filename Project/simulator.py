@@ -11,10 +11,9 @@ class GenericQuantumSimulator():
 
     def __init__(self):
         pass
-        
+    
     def apply_circuit(self, circuit : list[Gate]):
-        for gate in circuit:
-            gate.apply_gate(self)
+        pass
 
 class SparseQuantumSimulator(GenericQuantumSimulator):
 
@@ -54,6 +53,10 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
         self.states = {chosen_index: 1.0+0.0j}
 
         return chosen_index
+
+    def apply_circuit(self, circuit : list[Gate]):
+        for gate in circuit:
+            gate.apply_gate(self)
 
     def circ_plot(self, states=None, max_columns=6, amplitude_scale=0.6):
         if states is None:
@@ -108,28 +111,31 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
 
 
 class DenseQuantumSimulator(GenericQuantumSimulator):
-    def __init__(self, number_qubits:int = 5, states: dict[int,complex] =None):
+    def __init__(self, number_qubits:int = 5, states: list[complex] = None):
         self.n = number_qubits
 
-        if states is not None:
-            if not isinstance(states, dict):
-                raise TypeError(f"'states' must be a dict[int, complex], got {type(states).__name__}")
-            
-            for key, value in states.items():
-                if not isinstance(key, int):
-                    raise TypeError(f"All keys in 'states' must be int, but got {type(key).__name__} ({key})")
-                if not isinstance(value, complex):
-                    raise TypeError(f"All values in 'states' must be complex, but got {type(value).__name__} ({value})")
+        self.states = []
 
-            self.states = {index: value for index, value in states.items() if abs(value) >= self.epsilon}
+        if states is not None:
+            for i in range(len(states)):
+                if not isinstance(states[i], complex):
+                    raise TypeError(f"All values in 'states' must be complex, but got {type(states[i]).__name__} ({states[i]})")
+                self.states = states
         
     def get_amplitude(self, base_index):
-        return self.states.get(base_index, 0.0+0.0j)
+        return self.states[base_index]
 
     def set_amplitude(self, base_index, value):
-        pass
+        self.states[base_index] = value
     
     def collapse(self):
-        pass
-        
+        chosen_index = random.choices(range(self.n), weights=self.states)[0]
+        #TODO do this properly (returning array with only one value on 1.0+0.0j)
+        return chosen_index
+
+    #TODO call a different apply_gate specific for dense
+    def apply_circuit(self, circuit : list[Gate]):
+        for gate in circuit:
+            #gate.apply_gate(self)
+            pass
 

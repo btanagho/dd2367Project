@@ -22,7 +22,7 @@ class H(Gate):
         self.target_qubit = target_qubit
 
     def apply_gate(self, state):
-        old_states = dict(state.states)
+        old_states = state.states
         inv_sqrt2 = 1/np.sqrt(2)
         for index, amp in old_states.items():
             partner_index = index ^ (1 << self.target_qubit)
