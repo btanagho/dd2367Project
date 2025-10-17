@@ -6,8 +6,14 @@ class Gate():
     def __init__(self):
         pass
 
-    def apply_gate():
-        pass
+    # def apply_gate():
+    #     pass
+
+    def apply(self, simulator):
+        if getattr(simulator, 'is_dense', False):
+            return self.apply_dense_gate(simulator)
+        else:
+            return self.apply_sparse_gate(simulator)
 
 
 class H(Gate):
@@ -21,10 +27,10 @@ class H(Gate):
         super().__init__()
         self.target_qubit = target_qubit
 
-    def apply_gate(self, state):
+    def apply_sparse_gate(self, state):
         old_states = state.states
         inv_sqrt2 = 1/np.sqrt(2)
-        for index, amp in old_states.items():
+        for index, amp in list(old_states.items()):
             partner_index = index ^ (1 << self.target_qubit)
             bit = (index >> self.target_qubit) & 1
 
@@ -41,12 +47,26 @@ class H(Gate):
         
         return state
 
+    def apply_dense_gate(self, simulator):
+        n = simulator.n
+        state_vec = np.array(simulator.states)
+        for i in range(len(state_vec)):
+            bit = (i >> self.target_qubit) & 1
+            partner = i ^ (1 << self.target_qubit)
+            if i < partner:
+                amp_i = state_vec[i]
+                amp_p = state_vec[partner]
+                state_vec[i] = (amp_i + amp_p) / np.sqrt(2)
+                state_vec[partner] = (amp_i - amp_p) / np.sqrt(2)
+        simulator.states = list(state_vec)
+        return simulator
+
 
 class X(Gate):
     """
     Represents the Pauli-X (bit-flip) gate
 
-    So it acts like a clissical NOT operation:
+    So it acts like a classical NOT operation:
     X|0> = |1>
     X|1> = |0>
     
@@ -59,8 +79,7 @@ class X(Gate):
         self.target_qubit = target_qubit
 
 
-    def apply_gate(self, state):
-
+    def apply_sparse_gate(self, state):
         mask = 1<< self.target_qubit
         visited = set()
 
@@ -79,14 +98,29 @@ class X(Gate):
             state.set_amplitude(flipped_idx, amp_i)
 
         return state
+
+    def apply_dense_gate(self, simulator):
+        n = simulator.n
+        state_vec = np.array(simulator.states)
+        mask = 1 << self.target_qubit
+        for i in range(len(state_vec)):
+            j = i ^ mask
+            if i < j:
+                state_vec[i], state_vec[j] = state_vec[j], state_vec[i]
+        simulator.states = list(state_vec)
+        return simulator
     
 class SWAP(Gate):
+    """
+    The SWAP gate exchanges the quantum states of two qubits, swapping their values in every basis state.
+    This operation is reversible and preserves the overall quantum state.
+    """
     def __init__(self, qubit1: int, qubit2: int):
         super().__init__()
         self.qubit1 = qubit1
         self.qubit2 = qubit2
         
-    def apply_gate(self, state):
+    def apply_sparse_gate(self, state):
         old_states = state.states
         new_states = {}
 
@@ -106,12 +140,25 @@ class SWAP(Gate):
             swapped = basis ^ bit_mask
             return swapped
 
-        for basis, amp in old_states.items():
+        for basis, amp in list(old_states.items()):
             swapped_basis = swap_bits(basis, self.qubit1, self.qubit2)
             new_states[swapped_basis] = new_states.get(swapped_basis, 0) + amp
         
         state.states = new_states
         return state
+    
+    def apply_dense_gate(self, simulator):
+        n = simulator.n
+        state_vec = np.array(simulator.states)
+        for i in range(len(state_vec)):
+            bit1 = (i >> self.qubit1) & 1
+            bit2 = (i >> self.qubit2) & 1
+            if bit1 != bit2:
+                j = i ^ ((1 << self.qubit1) | (1 << self.qubit2))
+                if i < j:
+                    state_vec[i], state_vec[j] = state_vec[j], state_vec[i]
+        simulator.states = list(state_vec)
+        return simulator
     
 
 
