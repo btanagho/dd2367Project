@@ -1,0 +1,4 @@
+Create the numpy dense simulator
+Create the rest of the Gates
+Create tests for the simulators/new Gates and compare output on benchmark simulators e.g. qulacs
+Graph the simulator benchmarks sing matplot
