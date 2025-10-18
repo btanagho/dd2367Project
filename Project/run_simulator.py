@@ -1,5 +1,6 @@
 from simulator import SparseQuantumSimulator, DenseQuantumSimulator
-from gates import Gate, H, X, SWAP,Z,Y,S
+from gates import Gate, H, X, SWAP,Z,Y,S, T,RX,RZ,RY
+import numpy as np
 
 def hadamard_test():
     st = {0:1.0+0.0j} 
@@ -122,11 +123,50 @@ def y_gate_test():
     print("Dense:", dqs.states)
 
 
+def t_gate_test():
+    print("\n--- T Gate Test ---")
+    st = {1: 1.0+0.0j, 6: 1.0+0.0j}
+    sqs = SparseQuantumSimulator(3, st)
+    st_dense = [0.0+0.0j]*8
+    st_dense[1] = 1.0+0.0j
+    st_dense[6] = 1.0+0.0j
+    dqs = DenseQuantumSimulator(3, st_dense)
+
+    t0, t1, t2 = T(0), T(1), T(2)
+    circuit = [t0, t1, t2]
+
+    sqs.apply_circuit(circuit)
+    dqs.apply_circuit(circuit)
+
+    print("Sparse:", sqs.states)
+    print("Dense:", dqs.states)
+
+
+def rotation_test():
+    print("\n--- Rotation Gates Test ---")
+    st = {0: 1.0+0.0j}
+    sqs = SparseQuantumSimulator(1, st)
+    dqs = DenseQuantumSimulator(1, [1.0+0j, 0j])
+    rx = RX(0, np.pi/2)
+    ry = RY(0, np.pi/2)
+    rz = RZ(0, np.pi/2)
+    sqs.apply_circuit([rx, ry, rz])
+    dqs.apply_circuit([rx, ry, rz])
+    print("Sparse:", sqs.states)
+    print("Dense:", dqs.states)
+
+
+
 if __name__=="__main__":
     hadamard_test()
     flip_test()
     swap_test()
+
     z_gate_test()
     s_gate_test()
     y_gate_test()
+    
+    t_gate_test()
+    rotation_test()
+
 

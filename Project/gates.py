@@ -260,7 +260,144 @@ class Y(Gate):
         return simulator
 
 
-       
+class T(Gate):
+    """
+    Applies 45° (π/4) phase shift on |1>.
+        T|0> = |0>
+        T|1> = e^{iπ/4}|1>
+    """
+    def __init__(self, target_qubit):
+        super().__init__()
+        self.target_qubit = target_qubit
+        self.phase = np.exp(1j * np.pi / 4)
+
+    def apply_sparse_gate(self, state):
+        for idx, amp in list(state.states.items()):
+            bit = (idx >> self.target_qubit) & 1
+            if bit == 1:
+                state.set_amplitude(idx, amp * self.phase)
+        return state
+
+    def apply_dense_gate(self, simulator):
+        state_vec = np.array(simulator.states, dtype=complex)
+        for i in range(len(state_vec)):
+            bit = (i >> self.target_qubit) & 1
+            if bit == 1:
+                state_vec[i] *= self.phase
+        simulator.states = list(state_vec)
+        return simulator
+
     
+
+
+class RX(Gate):
+    """
+    RX rotation: cos(θ/2)I - i sin(θ/2)X
+    """
+    def __init__(self, target_qubit, theta):
+        super().__init__()
+        self.target_qubit = target_qubit
+        self.theta = theta
+
+    def apply_sparse_gate(self, state):
+        c = np.cos(self.theta / 2)
+        s = -1j * np.sin(self.theta / 2)
+        mask = 1 << self.target_qubit
+        visited = set()
+        for i in list(state.states.keys()):
+            if i in visited:
+                continue
+            j = i ^ mask
+            visited.add(i); visited.add(j)
+            ai = state.get_amplitude(i)
+            aj = state.get_amplitude(j)
+            state.set_amplitude(i, c*ai + s*aj)
+            state.set_amplitude(j, s*ai + c*aj)
+        return state
+
+    def apply_dense_gate(self, simulator):
+        c = np.cos(self.theta / 2)
+        s = -1j * np.sin(self.theta / 2)
+        state_vec = np.array(simulator.states, dtype=complex)
+        mask = 1 << self.target_qubit
+        for i in range(len(state_vec)):
+            j = i ^ mask
+            if i < j:
+                ai = state_vec[i]
+                aj = state_vec[j]
+                state_vec[i] = c*ai + s*aj
+                state_vec[j] = s*ai + c*aj
+        simulator.states = list(state_vec)
+        return simulator
+
+
+class RY(Gate):
+    """
+    RY rotation: cos(θ/2)I - i sin(θ/2)Y
+    """
+    def __init__(self, target_qubit, theta):
+        super().__init__()
+        self.target_qubit = target_qubit
+        self.theta = theta
+
+    def apply_sparse_gate(self, state):
+        c = np.cos(self.theta / 2)
+        s = np.sin(self.theta / 2)
+        mask = 1 << self.target_qubit
+        visited = set()
+        for i in list(state.states.keys()):
+            if i in visited:
+                continue
+            j = i ^ mask
+            visited.add(i); visited.add(j)
+            ai = state.get_amplitude(i)
+            aj = state.get_amplitude(j)
+            state.set_amplitude(i, c*ai - s*aj)
+            state.set_amplitude(j, s*ai + c*aj)
+        return state
+
+    def apply_dense_gate(self, simulator):
+        c = np.cos(self.theta / 2)
+        s = np.sin(self.theta / 2)
+        state_vec = np.array(simulator.states, dtype=complex)
+        mask = 1 << self.target_qubit
+        for i in range(len(state_vec)):
+            j = i ^ mask
+            if i < j:
+                ai = state_vec[i]
+                aj = state_vec[j]
+                state_vec[i] = c*ai - s*aj
+                state_vec[j] = s*ai + c*aj
+        simulator.states = list(state_vec)
+        return simulator
+
+
+
+class RZ(Gate):
+    """
+    RZ rotation: e^{-iθ/2}|0> + e^{iθ/2}|1>
+    """
+    def __init__(self, target_qubit, theta):
+        super().__init__()
+        self.target_qubit = target_qubit
+        self.theta = theta
+
+    def apply_sparse_gate(self, state):
+        phase0 = np.exp(-1j * self.theta / 2)
+        phase1 = np.exp(1j * self.theta / 2)
+        for idx, amp in list(state.states.items()):
+            bit = (idx >> self.target_qubit) & 1
+            state.set_amplitude(idx, amp * (phase1 if bit else phase0))
+        return state
+
+    def apply_dense_gate(self, simulator):
+        phase0 = np.exp(-1j * self.theta / 2)
+        phase1 = np.exp(1j * self.theta / 2)
+        state_vec = np.array(simulator.states, dtype=complex)
+        for i in range(len(state_vec)):
+            bit = (i >> self.target_qubit) & 1
+            state_vec[i] *= phase1 if bit else phase0
+        simulator.states = list(state_vec)
+        return simulator
 
 
