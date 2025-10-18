@@ -432,3 +432,119 @@ class CP(Gate):
                 state_vec[i] *= self.phase
         simulator.states = list(state_vec)
         return simulator
+
+class CNOT(Gate):
+    """
+    Controlled-NOT (CNOT) gate:
+    Flips the target qubit if the control qubit is 1.
+    """
+    def __init__(self, control_qubit, target_qubit):
+        super().__init__()
+        self.control = control_qubit
+        self.target = target_qubit
+
+    def apply_sparse_gate(self, state):
+        old_states = state.states
+        new_states = {}
+        for idx, amp in old_states.items():
+            control_bit = (idx >> self.control) & 1
+            if control_bit == 1:
+                # Flip the target bit if control bit is 1
+                flipped_idx = idx ^ (1 << self.target)
+                new_states[flipped_idx] = new_states.get(flipped_idx, 0) + amp
+            else:
+                new_states[idx] = new_states.get(idx, 0) + amp
+        state.states = new_states
+        return state
+
+    def apply_dense_gate(self, simulator):
+        state_vec = np.array(simulator.states, dtype=complex)
+        for i in range(len(state_vec)):
+            control_bit = (i >> self.control) & 1
+            if control_bit == 1:
+                j = i ^ (1 << self.target)
+                if i < j:
+                    state_vec[i], state_vec[j] = state_vec[j], state_vec[i]
+        simulator.states = list(state_vec)
+        return simulator
+
+class Toffoli(Gate):
+    """
+    Toffoli (CCNOT) gate: flips the target qubit if both control qubits are 1.
+    """
+    def __init__(self, control1, control2, target):
+        super().__init__()
+        self.control1 = control1
+        self.control2 = control2
+        self.target = target
+
+    def apply_sparse_gate(self, state):
+        old_states = state.states
+        new_states = {}
+        for idx, amp in old_states.items():
+            c1 = (idx >> self.control1) & 1
+            c2 = (idx >> self.control2) & 1
+            if c1 == 1 and c2 == 1:
+                flipped_idx = idx ^ (1 << self.target)
+                new_states[flipped_idx] = new_states.get(flipped_idx, 0) + amp
+            else:
+                new_states[idx] = new_states.get(idx, 0) + amp
+        state.states = new_states
+        return state
+
+    def apply_dense_gate(self, simulator):
+        state_vec = np.array(simulator.states, dtype=complex)
+        for i in range(len(state_vec)):
+            c1 = (i >> self.control1) & 1
+            c2 = (i >> self.control2) & 1
+            if c1 == 1 and c2 == 1:
+                j = i ^ (1 << self.target)
+                if i < j:
+                    state_vec[i], state_vec[j] = state_vec[j], state_vec[i]
+        simulator.states = list(state_vec)
+        return simulator
+
+class CSWAP(Gate):
+    """
+    Controlled-SWAP (Fredkin) gate: swaps two target qubits if the control qubit is 1.
+    """
+    def __init__(self, control, target1, target2):
+        super().__init__()
+        self.control = control
+        self.target1 = target1
+        self.target2 = target2
+
+    def apply_sparse_gate(self, state):
+        old_states = state.states
+        new_states = {}
+        for idx, amp in old_states.items():
+            control_bit = (idx >> self.control) & 1
+            if control_bit == 1:
+                bit1 = (idx >> self.target1) & 1
+                bit2 = (idx >> self.target2) & 1
+                if bit1 != bit2:
+                    swapped_idx = idx ^ ((1 << self.target1) | (1 << self.target2))
+                    new_states[swapped_idx] = new_states.get(swapped_idx, 0) + amp
+                else:
+                    new_states[idx] = new_states.get(idx, 0) + amp
+            else:
+                new_states[idx] = new_states.get(idx, 0) + amp
+        state.states = new_states
+        return state
+
+    def apply_dense_gate(self, simulator):
+        state_vec = np.array(simulator.states, dtype=complex)
+        n = simulator.n
+        for i in range(len(state_vec)):
+            control_bit = (i >> self.control) & 1
+            if control_bit == 1:
+                bit1 = (i >> self.target1) & 1
+                bit2 = (i >> self.target2) & 1
+                if bit1 != bit2:
+                    j = i ^ ((1 << self.target1) | (1 << self.target2))
+                    if j < len(state_vec):  # Prevent out-of-bounds
+                        if i < j:
+                            state_vec[i], state_vec[j] = state_vec[j], state_vec[i]
+        simulator.states = list(state_vec)
+        return simulator
+
