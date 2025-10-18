@@ -63,7 +63,7 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
             gate.apply(self)
             filename = f"sparse_{i}"
             i += 1
-            self.circ_plot(filename=filename)
+            #self.circ_plot(filename=filename)
 
 
     def circ_plot(self, states=None, max_columns=6, amplitude_scale=0.6, folder="plots", filename=None):
@@ -164,7 +164,7 @@ class DenseQuantumSimulator(GenericQuantumSimulator):
             gate.apply(self)
             filename = f"dense_{i}"
             i += 1
-            self.circ_plot(filename=filename)
+            #self.circ_plot(filename=filename)
 
     def circ_plot(self, states=None, max_columns=6, amplitude_scale=0.6, folder="plots", filename=None):
         # supports both explicit state vector or current
