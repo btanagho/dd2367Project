@@ -54,13 +54,13 @@ def max_nonzero_count(states):
     else:
         return len([v for v in states if abs(v) > 1e-12])
     
-def Evaluate_on_QFT(Sim_class,n=[8,10,12]):
+def Evaluate(Sim_class,n=[8,10,12], circuit_method=None):
     results= {m:{"runtime":None, "memory":None, "max_nz_count":None} for m in n}
     for m in n:
         print(Sim_class,m)
         tracemalloc.start()
         t0 = time.time()
-        sim = run_qft(Sim_class, m)
+        sim = circuit_method(Sim_class, m)
         t1 = time.time()
         mem = tracemalloc.get_traced_memory()[1] / (1024**2)  # MB
         tracemalloc.stop()
@@ -69,8 +69,6 @@ def Evaluate_on_QFT(Sim_class,n=[8,10,12]):
         results[m]={"runtime":runtime, "memory":mem, "max_nz_count":nz}
 
     return results
-
-
 
 
 import os
@@ -128,8 +126,8 @@ def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison.
 
 def main():
     num_qubits = [i*2 for i in range(8)]
-    res_dense = Evaluate_on_QFT(DenseQuantumSimulator,n=num_qubits)
-    res_sparse = Evaluate_on_QFT(SparseQuantumSimulator,n=num_qubits)
+    res_dense = Evaluate(DenseQuantumSimulator,n=num_qubits,circuit_method=run_qft)
+    res_sparse = Evaluate(SparseQuantumSimulator,n=num_qubits,circuit_method=run_qft)
     print("Dense:", res_dense)
     print("Sparse:", res_sparse)
     compare_sims({
