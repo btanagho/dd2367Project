@@ -1,5 +1,5 @@
 from simulator import SparseQuantumSimulator, DenseQuantumSimulator
-from gates import Gate, H, X, SWAP
+from gates import Gate, H, X, SWAP,Z,Y,S
 
 def hadamard_test():
     st = {0:1.0+0.0j} 
@@ -52,6 +52,81 @@ def swap_test():
     print(sqs.states)
     print(dqs.states)
 
-hadamard_test()
-flip_test()
-swap_test()
+
+def z_gate_test():
+    print("\n--- Z Gate Test ---")
+    # Initial state: amplitudes on |010> (2) and |111> (7)
+    st = {2: 0.8+0.0j, 7: 0.6+0.0j}
+    sqs = SparseQuantumSimulator(number_qubits=3, states=st)
+    st_dense = [0.0+0.0j]*8
+    st_dense[2] = 0.8+0.0j
+    st_dense[7] = 0.6+0.0j
+    dqs = DenseQuantumSimulator(number_qubits=3, states=st_dense)
+
+    z0 = Z(0)
+    z1 = Z(1)
+    z2 = Z(2)
+
+    circuit = [z0, z1, z2]
+
+    sqs.apply_circuit(circuit)
+    dqs.apply_circuit(circuit)
+
+    print("Sparse:", sqs.states)
+    print("Dense:", dqs.states)
+
+
+def s_gate_test():
+    print("\n--- S Gate Test ---")
+    # Initial state: amplitudes on |001> (1) and |111> (7)
+    st = {1: 0.8+0.0j, 7: 0.6+0.0j}
+    sqs = SparseQuantumSimulator(number_qubits=3, states=st)
+    st_dense = [0.0+0.0j]*8
+    st_dense[1] = 0.8+0.0j
+    st_dense[7] = 0.6+0.0j
+    dqs = DenseQuantumSimulator(number_qubits=3, states=st_dense)
+
+    s0 = S(0)
+    s1 = S(1)
+    s2 = S(2)
+
+    circuit = [s0, s1, s2]
+
+    sqs.apply_circuit(circuit)
+    dqs.apply_circuit(circuit)
+
+    print("Sparse:", sqs.states)
+    print("Dense:", dqs.states)
+
+
+def y_gate_test():
+    print("\n--- Y Gate Test ---")
+    # Initial state: amplitudes on |000> (0) and |101> (5)
+    st = {0: 0.8+0.0j, 5: 0.6+0.0j}
+    sqs = SparseQuantumSimulator(number_qubits=3, states=st)
+    st_dense = [0.0+0.0j]*8
+    st_dense[0] = 0.8+0.0j
+    st_dense[5] = 0.6+0.0j
+    dqs = DenseQuantumSimulator(number_qubits=3, states=st_dense)
+
+    y0 = Y(0)
+    y1 = Y(1)
+    y2 = Y(2)
+
+    circuit = [y0, y1, y2]
+
+    sqs.apply_circuit(circuit)
+    dqs.apply_circuit(circuit)
+
+    print("Sparse:", sqs.states)
+    print("Dense:", dqs.states)
+
+
+if __name__=="__main__":
+    hadamard_test()
+    flip_test()
+    swap_test()
+    z_gate_test()
+    s_gate_test()
+    y_gate_test()
+

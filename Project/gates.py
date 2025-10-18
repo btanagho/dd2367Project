@@ -162,8 +162,103 @@ class SWAP(Gate):
     
 
 
-        
-           
+class Z(Gate):
+    """
+    Applis 180 degree shift on |1>
+    Pauli-Z gate:
+        Z|0> = |0>
+        Z|1> = -|1>
+    """
+    def __init__(self, target_qubit):
+        super().__init__()
+        self.target_qubit = target_qubit
+
+    def apply_sparse_gate(self, state):
+        for idx, amp in list(state.states.items()):
+            bit = (idx >> self.target_qubit) & 1
+            if bit == 1:
+                state.set_amplitude(idx, -amp)
+        return state
+
+    def apply_dense_gate(self, simulator):
+        state_vec = np.array(simulator.states, dtype=complex)
+        for i in range(len(state_vec)):
+            bit = (i >> self.target_qubit) & 1
+            if bit == 1:
+                state_vec[i] *= -1
+        simulator.states = list(state_vec)
+        return simulator
+
+class S(Gate):
+    """
+    Applis 90 degree shift on |1>
+    Phase (S) gate:
+        S|0> = |0>
+        S|1> = i|1>
+    """
+    def __init__(self, target_qubit):
+        super().__init__()
+        self.target_qubit = target_qubit
+
+    def apply_sparse_gate(self, state):
+        for idx, amp in list(state.states.items()):
+            bit = (idx >> self.target_qubit) & 1
+            if bit == 1:
+                state.set_amplitude(idx, amp * 1j)
+        return state
+
+    def apply_dense_gate(self, simulator):
+        state_vec = np.array(simulator.states, dtype=complex)
+        for i in range(len(state_vec)):
+            bit = (i >> self.target_qubit) & 1
+            if bit == 1:
+                state_vec[i] *= 1j
+        simulator.states = list(state_vec)
+        return simulator
+
+
+
+class Y(Gate):
+    """
+    Pauli-Y gate:
+        Y|0> = i|1>
+        Y|1> = -i|0>
+    """
+    def __init__(self, target_qubit: int):
+        super().__init__()
+        self.target_qubit = target_qubit
+
+    def apply_sparse_gate(self, state):
+        mask = 1 << self.target_qubit
+        visited = set()
+
+        for i in list(state.states.keys()):
+            if i in visited:
+                continue
+            j = i ^ mask
+            visited.add(i); visited.add(j)
+
+            ai = state.get_amplitude(i)
+            aj = state.get_amplitude(j)
+
+            # Apply [ [0, -i], [i, 0] ] to the pair (ai, aj)
+            state.set_amplitude(i, (-1j) * aj)
+            state.set_amplitude(j, (+1j) * ai)
+        return state
+
+    def apply_dense_gate(self, simulator):
+        state_vec = np.array(simulator.states, dtype=complex)
+        mask = 1 << self.target_qubit
+        for i in range(len(state_vec)):
+            j = i ^ mask
+            if i < j:
+                ai = state_vec[i]
+                aj = state_vec[j]
+                state_vec[i] = (-1j) * aj
+                state_vec[j] = (+1j) * ai
+        simulator.states = list(state_vec)
+        return simulator
+
 
        
     
