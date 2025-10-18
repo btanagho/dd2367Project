@@ -39,18 +39,6 @@ def run_qft():
     dqs.apply_circuit(PREP)
     sqs.apply_circuit(PREP)
 
-    """ print("=== Sparse Simulator: Circuit Plot ===")
-    sqs.circ_plot()
-    print("=== Sparse Simulator: Statevector ===")
-    print(sqs.states)
-    print("\n")
-
-    print("=== Dense Simulator: Circuit Plot ===")
-    dqs.circ_plot()
-    print("=== Dense Simulator: Statevector ===")
-    print(dqs.states)
-    print("\n")"""
-
     dqs.apply_circuit(QFT)
     sqs.apply_circuit(QFT)
 

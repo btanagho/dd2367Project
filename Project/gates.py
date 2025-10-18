@@ -27,29 +27,27 @@ class H(Gate):
         super().__init__()
         self.target_qubit = target_qubit
 
-def apply_sparse_gate(self, state):
-    inv_sqrt2 = 1 / np.sqrt(2)
-    old_states = state.states
-    new_states = {}  # temporary dict
+    def apply_sparse_gate(self, state):
+        inv_sqrt2 = 1 / np.sqrt(2)
+        old_states = state.states
+        new_states = {}
 
-    for index, amp in old_states.items():
-        partner_index = index ^ (1 << self.target_qubit)
-        bit = (index >> self.target_qubit) & 1
+        for index, amp in old_states.items():
+            partner_index = index ^ (1 << self.target_qubit)
+            bit = (index >> self.target_qubit) & 1
 
-        if bit == 0:
-            ts1 = amp * inv_sqrt2
-            ts2 = amp * inv_sqrt2
-        else:
-            ts1 = -amp * inv_sqrt2
-            ts2 = amp * inv_sqrt2
+            if bit == 0:
+                ts1 = amp * inv_sqrt2
+                ts2 = amp * inv_sqrt2
+            else:
+                ts1 = -amp * inv_sqrt2
+                ts2 = amp * inv_sqrt2
 
-        # accumulate without overwriting
-        new_states[index] = new_states.get(index, 0) + ts1
-        new_states[partner_index] = new_states.get(partner_index, 0) + ts2
-
-    # assign all at once
-    state.states = new_states
-    return state
+            new_states[index] = new_states.get(index, 0) + ts1
+            new_states[partner_index] = new_states.get(partner_index, 0) + ts2
+        
+        state.states = new_states
+        return state
 
     def apply_dense_gate(self, simulator):
         n = simulator.n
