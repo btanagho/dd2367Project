@@ -1,6 +1,6 @@
 Create the numpy dense simulator -> done
 Adapt gates for dense simulator -> done
-Create the rest of the Gates -> done?
+Create the rest of the Gates -> done
 Create tests for the simulators/new Gates and compare output on benchmark simulators e.g. qulacs
 Graph the simulator benchmarks using matplot
 Add checks for edge case errors (getting invalid value)

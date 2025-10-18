@@ -1,8 +1,9 @@
 from simulator import SparseQuantumSimulator, DenseQuantumSimulator
-from gates import Gate, H, X, SWAP,Z,Y,S, T,RX,RZ,RY
+from gates import Gate, H, X, SWAP,Z,Y,S, T,RX,RZ,RY,CP
 import numpy as np
 
 def hadamard_test():
+    print("\n--- H Gate Test ---")
     st = {0:1.0+0.0j} 
     sqs = SparseQuantumSimulator(number_qubits=3, states=st)
     st = [1.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j]
@@ -20,6 +21,7 @@ def hadamard_test():
     print(dqs.states)
 
 def flip_test():
+    print("\n--- X Gate Test ---")
     st = {2:0.8+0.0j, 7:0.6+0.0j} 
     sqs = SparseQuantumSimulator(number_qubits=3, states=st)
     st = [0.0+0.0j, 0.0+0.0j, 0.8+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.6+0.0j]
@@ -38,6 +40,7 @@ def flip_test():
     print(dqs.states)
 
 def swap_test():
+    print("\n--- SWAP Gate Test ---")
     st = {1:0.8+0.0j, 6:0.6+0.0j} 
     sqs = SparseQuantumSimulator(number_qubits=3, states=st)
     st = [0.0+0.0j, 0.8+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.0+0.0j, 0.6+0.0j, 0.0+0.0j]
@@ -157,16 +160,44 @@ def rotation_test():
 
 
 
-if __name__=="__main__":
-    hadamard_test()
-    flip_test()
-    swap_test()
+def cp_gate_test():
+    print("\n--- Controlled-Phase (CP) Gate Test ---")
 
-    z_gate_test()
-    s_gate_test()
-    y_gate_test()
-    
-    t_gate_test()
-    rotation_test()
+    # Initial state: |011> (3) and |111> (7)
+    # So both have control=1 and target=1 for at least one of them
+    st = {3: 1.0+0.0j, 7: 1.0+0.0j}
+    sqs = SparseQuantumSimulator(3, st)
+
+    st_dense = [0.0+0.0j]*8
+    st_dense[3] = 1.0+0.0j
+    st_dense[7] = 1.0+0.0j
+    dqs = DenseQuantumSimulator(3, st_dense)
+
+    # Controlled-Phase gate with φ = π/2
+    # control = qubit 1, target = qubit 2
+    cp = CP(control_qubit=1, target_qubit=2, phi=np.pi/2)
+
+    circuit = [cp]
+
+    sqs.apply_circuit(circuit)
+    dqs.apply_circuit(circuit)
+
+    print("Sparse:", sqs.states)
+    print("Dense:", dqs.states)
+
+
+
+
+if __name__=="__main__":
+    # hadamard_test()
+    # flip_test()
+    # swap_test()
+    # z_gate_test()
+    # s_gate_test()
+    # y_gate_test()
+    # t_gate_test()
+    # rotation_test()
+    # cp_gate_test()
+    pass
 
 

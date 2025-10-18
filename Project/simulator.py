@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import math
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -57,18 +58,21 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
         return chosen_index
 
     def apply_circuit(self, circuit : list[Gate]):
+        i = 0
         for gate in circuit:
-            # gate.apply_gate(self)
             gate.apply(self)
+            filename = f"sparse_{i}"
+            i += 1
+            self.circ_plot(filename=filename)
 
 
-    def circ_plot(self, states=None, max_columns=6, amplitude_scale=0.6):
+    def circ_plot(self, states=None, max_columns=6, amplitude_scale=0.6, folder="plots", filename=None):
         if states is None:
-            states = self.state
+            states = self.states
 
         basis_states = 2**self.n
-        amplitudes = {k: np.absolute(v) for k, v in self.state.items()}
-        phases = {k: np.angle(v) for k, v in self.state.items()}
+        amplitudes = {k: np.absolute(v) for k, v in self.states.items()}
+        phases = {k: np.angle(v) for k, v in self.states.items()}
 
         rows = (basis_states + max_columns - 1) // max_columns  
         cols = min(basis_states, max_columns)
@@ -81,32 +85,37 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
                 if idx >= basis_states:
                     axs[row][col].axis('off')
                     continue
-                    
+                        
                 amplitude = amplitudes.get(idx, 0)
                 phase = phases.get(idx, 0)
 
-            # Outer circle with custom color depending on amplitude threshold
-            outer_color = 'gray' if amplitude > 0.001 else 'lightgray'
-            circleExt = patches.Circle((0.5, 0.5), 0.5, color=outer_color, alpha=0.15)
-            axs[row][col].add_patch(circleExt)
-            
-            # Inner circle scaled by amplitude
-            circleInt = patches.Circle((0.5, 0.5), amplitude * amplitude_scale, color='navy', alpha=0.4)
-            axs[row][col].add_patch(circleInt)
-            axs[row][col].set_aspect('equal')
-            
-            state_label = "|" + format(idx, f'0{basis_states}b') + ">" 
-            axs[row][col].set_title(state_label, fontsize=9)
-            
-            # Phase vector in red
-            angle = phase + np.pi / 2
-            xl = [0.5, 0.5 + amplitude * amplitude_scale * math.cos(angle)]
-            yl = [0.5, 0.5 + amplitude * amplitude_scale * math.sin(angle)]
-            axs[row][col].plot(xl, yl, 'r')
-            axs[row][col].axis('off')
-    
-        plt.tight_layout()
-        plt.show()
+                outer_color = 'gray' if amplitude > 0.001 else 'lightgray'
+                circleExt = patches.Circle((0.5, 0.5), 0.5, color=outer_color, alpha=0.15)
+                axs[row][col].add_patch(circleExt)
+
+                circleInt = patches.Circle((0.5, 0.5), amplitude * amplitude_scale, color='navy', alpha=0.4)
+                axs[row][col].add_patch(circleInt)
+                axs[row][col].set_aspect('equal')
+
+                state_label = "|" + format(idx, f'0{self.n}b') + ">"
+                axs[row][col].set_title(state_label, fontsize=9)
+
+                angle = phase + np.pi / 2
+                xl = [0.5, 0.5 + amplitude * amplitude_scale * math.cos(angle)]
+                yl = [0.5, 0.5 + amplitude * amplitude_scale * math.sin(angle)]
+                axs[row][col].plot(xl, yl, 'r')
+                axs[row][col].axis('off')
+
+        if filename:
+            # Make sure folder exists
+            os.makedirs(folder, exist_ok=True)
+            # Build full path with .png extension
+            save_path = os.path.join(folder, f"{filename}.png")
+            plt.savefig(save_path)  # overwrites if exists
+            plt.close()  # free memory
+        else:
+            plt.show()
+
 
     def plot_multiple_states(self, diff_states: list[dict[int, complex]]):
         for i, state in enumerate(diff_states):
@@ -150,10 +159,14 @@ class DenseQuantumSimulator(GenericQuantumSimulator):
         return chosen_index
 
     def apply_circuit(self, circuit : list[Gate]):
+        i = 0
         for gate in circuit:
             gate.apply(self)
+            filename = f"dense_{i}"
+            i += 1
+            self.circ_plot(filename=filename)
 
-    def circ_plot(self, states=None, max_columns=6, amplitude_scale=0.6):
+    def circ_plot(self, states=None, max_columns=6, amplitude_scale=0.6, folder="plots", filename=None):
         # supports both explicit state vector or current
         if states is None:
             amplitudes = [abs(v) for v in self.states]
@@ -190,37 +203,18 @@ class DenseQuantumSimulator(GenericQuantumSimulator):
                 axs[row][col].axis('off')
 
         plt.tight_layout()
-        plt.show()
+
+        if filename:
+            # Make sure folder exists
+            os.makedirs(folder, exist_ok=True)
+            # Build full path with .png extension
+            save_path = os.path.join(folder, f"{filename}.png")
+            plt.savefig(save_path)  # overwrites if exists
+            plt.close()  # free memory
+        else:
+            plt.show()
 
     def plot_multiple_states(self, diff_states: list[dict[int, complex]]):
         for i, state in enumerate(diff_states):
             print(f"Plotting state {i+1}/{len(diff_states)}")
             self.circ_plot(state=state)
-    
-    # def __init__(self, number_qubits:int = 5, states: list[complex] = None):
-    #     self.n = number_qubits
-
-    #     self.states = []
-
-    #     if states is not None:
-    #         for i in range(len(states)):
-    #             if not isinstance(states[i], complex):
-    #                 raise TypeError(f"All values in 'states' must be complex, but got {type(states[i]).__name__} ({states[i]})")
-    #             self.states = states
-        
-    # def get_amplitude(self, base_index):
-    #     return self.states[base_index]
-
-    # def set_amplitude(self, base_index, value):
-    #     self.states[base_index] = value
-    
-    # def collapse(self):
-    #     chosen_index = random.choices(range(self.n), weights=self.states)[0]
-    #     #TODO do this properly (returning array with only one value on 1.0+0.0j)
-    #     return chosen_index
-
-    # #TODO call a different apply_gate specific for dense
-    # def apply_circuit(self, circuit : list[Gate]):
-    #     for gate in circuit:
-    #         #gate.apply_gate(self)
-    #         pass
