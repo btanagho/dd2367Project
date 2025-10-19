@@ -5,47 +5,58 @@ import time
 import tracemalloc
 import matplotlib.pyplot as plt
 
-def run_qft(QuantumSim, n):
-  # PREP
-  def make_prep_gates(m):
+def run_qft(QuantumSim, n, uniform_init=False, randomize=False):
+    # INIT STATE
+    def make_init_state(m):
+        if uniform_init:
+            amp = 1 / np.sqrt(2**m)
+            if QuantumSim is SparseQuantumSimulator:
+                st = {j: amp + 0.0j for j in range(2**m)}
+            elif QuantumSim is DenseQuantumSimulator:
+                st = [amp + 0.0j for _ in range(2**m)]
+        else:
+            if QuantumSim is SparseQuantumSimulator:
+                st = {0: 1.0+0.0j}
+            elif QuantumSim is DenseQuantumSimulator:
+                st = [1.0+0.0j] + [0.0+0.0j for _ in range(2**m-1)]
+        return st
+
+    # QFT gates
+    def make_qft_gates(m):
+        gates = []
+        for j in reversed(range(m)):
+            gates.append(H(j))
+            for k in range(j-1, -1, -1):
+                angle = -np.pi / (2 ** (j - k))
+                gates.append(CP(k, j, angle))
+        for i in range(m // 2):
+            gates.append(SWAP(i, m - 1 - i))
+        return gates
+
+    def make_random_gates(m, depth=2):
+        gates = []
+        for _ in range(depth):
+            for q in range(m):
+                gates.append(H(q))
+            for _ in range(m):
+                a, b = np.random.choice(m, size=2, replace=False)
+                gates.append(CNOT(a, b))
+        return gates
+
+    st = make_init_state(n)
+    sim = QuantumSim(number_qubits=n, states=st)
+
     gates = []
-    for i in range(m):
-      gates.append(H(i))
-    gates.append(CP(1, 1, np.pi))
-    return gates
+    if randomize:
+        gates += make_random_gates(n, depth=max(2, n//2))
+    gates += make_qft_gates(n)
 
-  # QFT
-  def make_qft_gates(m):
-    gates = []
-    for j in reversed(range(m)):
-      gates.append(H(j))
-      for k in range(j-1, -1, -1):
-          angle = -np.pi / (2 ** (j - k))
-          gates.append(CP(k, j, angle))
-    for i in range(m // 2):
-        gates.append(SWAP(i, m - 1 - i))
-    return gates
+    # Apply gates
+    for g in gates:
+        g.apply(sim)
 
-  # INIT STATE
-  def make_init_state(m):      
-      if QuantumSim is SparseQuantumSimulator:
-          st = {0:1.0+0.0j} 
-      elif QuantumSim is DenseQuantumSimulator:
-          st = [1.0+0.0j]+[0.0+0.0j for i in range(2**m -1)]
-      return st
-  
-  PREP = make_prep_gates(n)
-  QFT = make_qft_gates(n)
-  st = make_init_state(n)
-  
-  sim = QuantumSim(number_qubits=n, states=st)
-  
-  sim.apply_circuit(PREP)
-  sim.apply_circuit(QFT)
-
-  sim.circ_plot(filename="qft")
-
-  return sim
+    sim.circ_plot(filename=f"qft_n{n}_uniform{uniform_init}_rand{randomize}")
+    return sim
 
 def run_adder(QuantumSim, n):
     def MAJ(a, b, c):
@@ -68,12 +79,15 @@ def run_adder(QuantumSim, n):
 
         return gates
 
-    def make_init_state(m):      
-      if QuantumSim is SparseQuantumSimulator:
-          st = {0:1.0+0.0j} 
-      elif QuantumSim is DenseQuantumSimulator:
-          st = [1.0+0.0j]+[0.0+0.0j for i in range(2**m -1)]
-      return st
+    def make_init_state(m):
+        amp = 1 / np.sqrt(2**m)
+        
+        if QuantumSim is SparseQuantumSimulator:
+            st = {j: amp + 0.0j for j in range(2**m)}
+        elif QuantumSim is DenseQuantumSimulator:
+            st = [amp + 0.0j for i in range(2**m)]
+        
+        return st
 
     total_qubits = 2 * n + 1
 
@@ -97,21 +111,27 @@ def max_nonzero_count(states):
     else:
         return len([v for v in states if abs(v) > 1e-12])
     
-def Evaluate(Sim_class,n=[8,10,12], circuit_method=None):
-    results= {m:{"runtime":None, "memory":None, "max_nz_count":None} for m in n}
+def Evaluate(Sim_class, n=[8,10,12], circuit_method=None, uniform_init=False, randomize=False):
+    results = {m: {"runtime": None, "memory": None, "max_nz_count": None, "density": None} for m in n}
+
     for m in n:
-        print(Sim_class,m)
+        print(Sim_class, m)
         tracemalloc.start()
         t0 = time.time()
-        sim = circuit_method(Sim_class, m)
+        sim = circuit_method(Sim_class, m, uniform_init=uniform_init, randomize=randomize)
         t1 = time.time()
         mem = tracemalloc.get_traced_memory()[1] / (1024**2)  # MB
         tracemalloc.stop()
-        nz = max_nonzero_count(sim.states)
-        runtime=t1-t0
-        results[m]={"runtime":runtime, "memory":mem, "max_nz_count":nz}
-    return results
 
+        if isinstance(sim.states, dict):
+            nz = len([v for v in sim.states.values() if abs(v) > 1e-12])
+        else:
+            nz = len([v for v in sim.states if abs(v) > 1e-12])
+        density = nz / (2**m)
+
+        results[m] = {"runtime": t1-t0, "memory": mem, "max_nz_count": nz, "density": density}
+
+    return results
 
 import os
 import matplotlib.pyplot as plt
@@ -168,16 +188,18 @@ def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison.
 
 def main():
     #QFT
-    #num_qubits = [i*2 for i in range(8)]
-    #res_dense = Evaluate(DenseQuantumSimulator,n=num_qubits,circuit_method=run_qft)
-    #res_sparse = Evaluate(SparseQuantumSimulator,n=num_qubits,circuit_method=run_qft)
-    #print("Dense:", res_dense)
-    #print("Sparse:", res_sparse)
+    num_qubits = [4, 6, 8, 10]
+    res_dense = Evaluate(DenseQuantumSimulator, n=num_qubits, circuit_method=run_qft,
+                        uniform_init=True, randomize=True)
+    res_sparse = Evaluate(SparseQuantumSimulator, n=num_qubits, circuit_method=run_qft,
+                        uniform_init=True, randomize=True)
+    print("Dense:", res_dense)
+    print("Sparse:", res_sparse)
     
-    #compare_sims({
-    #    "Dense NumPy Vector": res_dense,
-    #    "Sparse Hashmap": res_sparse
-    #}, filename="qft_comparison.png")
+    compare_sims({
+        "Dense NumPy Vector": res_dense,
+        "Sparse Hashmap": res_sparse
+    }, filename="qft_comparison.png")
 
     #ADDER
     num_qubits = [i*2 for i in range(3)]

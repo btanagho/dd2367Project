@@ -124,58 +124,55 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
 
 
 class DenseQuantumSimulator(GenericQuantumSimulator):
-
     is_dense = True
 
-    #TODO proposed creation of DenseQuantumSimulator, existing code below - had to create this to test the gates, but please feel free to change and adapt
-    def __init__(self, number_qubits:int = 5, states: list[complex] = None):
+    def __init__(self, number_qubits: int = 5, states: np.ndarray = None):
         self.n = number_qubits
-        # State vector (dense); use all 0s state by default
-        if states is not None:
-            if len(states) != 2 ** self.n:
-                raise ValueError(f"States list must be of length 2^{self.n}")
-            for v in states:
-                if not isinstance(v, complex):
-                    raise TypeError(f"All values in 'states' must be complex, but got {type(v).__name__} ({v})")
-            self.states = list(states)
-        else:
-            self.states = [0.0+0.0j] * (2 ** self.n)
-            self.states[0] = 1.0 + 0.0j # |0...0>
+        self.dim = 2 ** self.n
 
-    def get_amplitude(self, base_index):
+        if states is not None:
+            states = np.asarray(states, dtype=np.complex128)
+            if states.shape != (self.dim,):
+                raise ValueError(f"States array must have shape ({self.dim},)")
+            self.states = states
+        else:
+            # initialize |0...0>
+            self.states = np.zeros(self.dim, dtype=np.complex128)
+            self.states[0] = 1.0 + 0.0j
+
+    def get_amplitude(self, base_index: int) -> complex:
         return self.states[base_index]
-    
-    def set_amplitude(self, base_index, value):
+
+    def set_amplitude(self, base_index: int, value: complex):
         self.states[base_index] = value
 
-    def collapse(self):
-        # Compute measurement probabilities
-        probs = [abs(a)**2 for a in self.states]
-        indices = list(range(len(self.states)))
-        chosen_index = random.choices(indices, weights=probs)[0]
-        # Collapse state to basis index 'chosen_index'
-        self.states = [0.0+0.0j] * len(self.states)
-        self.states[chosen_index] = 1.0+0.0j
+    def collapse(self) -> int:
+        probs = np.abs(self.states) ** 2
+        chosen_index = random.choices(range(self.dim), weights=probs)[0]
+        self.states.fill(0.0)
+        self.states[chosen_index] = 1.0 + 0.0j
         return chosen_index
 
-    def apply_circuit(self, circuit : list[Gate]):
-        i = 0
-        for gate in circuit:
+    def apply_circuit(self, circuit: list):
+        for i, gate in enumerate(circuit):
             gate.apply(self)
-            filename = f"dense_{i}"
-            i += 1
-            #self.circ_plot(filename=filename)
+            # optional: self.circ_plot(filename=f"dense_{i}")
 
+    def norm(self):
+        return np.linalg.norm(self.states)
+
+    def initialize_uniform(self):
+        amp = 1 / np.sqrt(self.dim)
+        self.states.fill(amp)
+
+    # Visualization stays almost the same
     def circ_plot(self, states=None, max_columns=6, amplitude_scale=0.6, folder="plots", filename=None):
-        # supports both explicit state vector or current
         if states is None:
-            amplitudes = [abs(v) for v in self.states]
-            phases = [np.angle(v) for v in self.states]
-        else:
-            amplitudes = [abs(v) for v in states]
-            phases = [np.angle(v) for v in states]
+            states = self.states
+        amplitudes = np.abs(states)
+        phases = np.angle(states)
 
-        basis_states = 2 ** self.n
+        basis_states = self.dim
         rows = (basis_states + max_columns - 1) // max_columns
         cols = min(basis_states, max_columns)
         fig, axs = plt.subplots(rows, cols, figsize=(cols * 1.4, rows * 1.4), squeeze=False)
@@ -197,24 +194,21 @@ class DenseQuantumSimulator(GenericQuantumSimulator):
                 state_label = "|" + format(idx, f'0{self.n}b') + ">"
                 axs[row][col].set_title(state_label, fontsize=9)
                 angle = phase + np.pi / 2
-                xl = [0.5, 0.5 + amplitude * amplitude_scale * math.cos(angle)]
-                yl = [0.5, 0.5 + amplitude * amplitude_scale * math.sin(angle)]
+                xl = [0.5, 0.5 + amplitude * amplitude_scale * np.cos(angle)]
+                yl = [0.5, 0.5 + amplitude * amplitude_scale * np.sin(angle)]
                 axs[row][col].plot(xl, yl, 'r')
                 axs[row][col].axis('off')
 
         plt.tight_layout()
-
         if filename:
-            # Make sure folder exists
             os.makedirs(folder, exist_ok=True)
-            # Build full path with .png extension
             save_path = os.path.join(folder, f"dqs-{filename}.png")
-            plt.savefig(save_path)  # overwrites if exists
-            plt.close()  # free memory
+            plt.savefig(save_path)
+            plt.close()
         else:
             plt.show()
 
-    def plot_multiple_states(self, diff_states: list[dict[int, complex]]):
+    def plot_multiple_states(self, diff_states: list[np.ndarray]):
         for i, state in enumerate(diff_states):
             print(f"Plotting state {i+1}/{len(diff_states)}")
-            self.circ_plot(state=state)
+            self.circ_plot(states=state)
