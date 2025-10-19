@@ -6,6 +6,12 @@ import tracemalloc
 import matplotlib.pyplot as plt
 import os
 
+def make_prep_gates(m):
+    gates = []
+    for i in range(m):
+      gates.append(H(i))
+    return gates
+
 def make_qft_gates(n):
     # Dense-friendly 
     '''
@@ -26,7 +32,9 @@ def make_qft_gates(n):
     Returns:
         gates (list): List of gate objects (Hadamard, controlled-phase, and SWAP) implementing the QFT.
     '''
-    gates = []
+    gates = make_prep_gates(n)
+    gates.append(CP(1,1,np.pi))
+
     for j in reversed(range(n)):
         gates.append(H(j))
         for k in range(j-1, -1, -1):
@@ -246,15 +254,15 @@ def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison.
 
 # Main Script #TODO Swap Test takes super long for some reason, so I've commented it out
 def main():
-    num_qubits = [8, 10, 12]
+    num_qubits = [i*2 for i in range(2,7)]
     res_dense_qft = Evaluate(DenseQuantumSimulator, n_list=num_qubits, circuit_method=make_qft_gates)
     res_sparse_qft = Evaluate(SparseQuantumSimulator, n_list=num_qubits, circuit_method=make_qft_gates)
     res_dense_ghz = Evaluate(DenseQuantumSimulator, n_list=num_qubits, circuit_method=make_ghz_gates)
     res_sparse_ghz = Evaluate(SparseQuantumSimulator, n_list=num_qubits, circuit_method=make_ghz_gates)
     res_dense_adder = Evaluate(DenseQuantumSimulator, n_list=num_qubits, circuit_method=make_adder_gates)
     res_sparse_adder = Evaluate(SparseQuantumSimulator, n_list=num_qubits, circuit_method=make_adder_gates)
-    # res_dense_swap = EvaluateSwapTest(DenseQuantumSimulator, n_list=num_qubits)
-    # res_sparse_swap = EvaluateSwapTest(SparseQuantumSimulator, n_list=num_qubits)
+    res_dense_swap = EvaluateSwapTest(DenseQuantumSimulator, n_list=num_qubits)
+    res_sparse_swap = EvaluateSwapTest(SparseQuantumSimulator, n_list=num_qubits)
     compare_sims({
         "Dense QFT": res_dense_qft,
         "Sparse QFT": res_sparse_qft,
@@ -262,8 +270,8 @@ def main():
         "Sparse GHZ": res_sparse_ghz,
         "Dense Adder": res_dense_adder,
         "Sparse Adder": res_sparse_adder,
-        # "Dense SWAP Test": res_dense_swap,
-        # "Sparse SWAP Test": res_sparse_swap
+        "Dense SWAP Test": res_dense_swap,
+        "Sparse SWAP Test": res_sparse_swap
     }, filename="simulator_comparison_all.png")
     # plot only QFT
     compare_sims({
@@ -281,10 +289,10 @@ def main():
         "Sparse Adder": res_sparse_adder
     }, filename="simulator_comparison_adder.png", title_prefix="Adder")
     # plot only SWAP
-    # compare_sims({
-    #     "Dense SWAP Test": res_dense_swap,
-    #     "Sparse SWAP Test": res_sparse_swap
-    # }, filename="simulator_comparison_swap.png", title_prefix="SWAP Test")
+    compare_sims({
+         "Dense SWAP Test": res_dense_swap,
+         "Sparse SWAP Test": res_sparse_swap
+     }, filename="simulator_comparison_swap.png", title_prefix="SWAP Test")
 
 if __name__ == "__main__":
     main()
