@@ -110,7 +110,7 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
             # Make sure folder exists
             os.makedirs(folder, exist_ok=True)
             # Build full path with .png extension
-            save_path = os.path.join(folder, f"{filename}.png")
+            save_path = os.path.join(folder, f"sqs-{filename}.png")
             plt.savefig(save_path)  # overwrites if exists
             plt.close()  # free memory
         else:
@@ -208,7 +208,7 @@ class DenseQuantumSimulator(GenericQuantumSimulator):
             # Make sure folder exists
             os.makedirs(folder, exist_ok=True)
             # Build full path with .png extension
-            save_path = os.path.join(folder, f"{filename}.png")
+            save_path = os.path.join(folder, f"dqs-{filename}.png")
             plt.savefig(save_path)  # overwrites if exists
             plt.close()  # free memory
         else:
