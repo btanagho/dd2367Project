@@ -188,7 +188,7 @@ class Z(Gate):
             bit = (i >> self.target_qubit) & 1
             if bit == 1:
                 state_vec[i] *= -1
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 class S(Gate):
@@ -215,7 +215,7 @@ class S(Gate):
             bit = (i >> self.target_qubit) & 1
             if bit == 1:
                 state_vec[i] *= 1j
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 
@@ -258,7 +258,7 @@ class Y(Gate):
                 aj = state_vec[j]
                 state_vec[i] = (-1j) * aj
                 state_vec[j] = (+1j) * ai
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 
@@ -286,7 +286,7 @@ class T(Gate):
             bit = (i >> self.target_qubit) & 1
             if bit == 1:
                 state_vec[i] *= self.phase
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
     
@@ -329,7 +329,7 @@ class RX(Gate):
                 aj = state_vec[j]
                 state_vec[i] = c*ai + s*aj
                 state_vec[j] = s*ai + c*aj
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 
@@ -370,7 +370,7 @@ class RY(Gate):
                 aj = state_vec[j]
                 state_vec[i] = c*ai - s*aj
                 state_vec[j] = s*ai + c*aj
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 
@@ -399,7 +399,7 @@ class RZ(Gate):
         for i in range(len(state_vec)):
             bit = (i >> self.target_qubit) & 1
             state_vec[i] *= phase1 if bit else phase0
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 
@@ -430,7 +430,7 @@ class CP(Gate):
             target_bit = (i >> self.target) & 1
             if control_bit == 1 and target_bit == 1:
                 state_vec[i] *= self.phase
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 class CNOT(Gate):
@@ -465,7 +465,7 @@ class CNOT(Gate):
                 j = i ^ (1 << self.target)
                 if i < j:
                     state_vec[i], state_vec[j] = state_vec[j], state_vec[i]
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 class Toffoli(Gate):
@@ -501,7 +501,7 @@ class Toffoli(Gate):
                 j = i ^ (1 << self.target)
                 if i < j:
                     state_vec[i], state_vec[j] = state_vec[j], state_vec[i]
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 
 class CSWAP(Gate):
@@ -545,6 +545,6 @@ class CSWAP(Gate):
                     if j < len(state_vec):  # Prevent out-of-bounds
                         if i < j:
                             state_vec[i], state_vec[j] = state_vec[j], state_vec[i]
-        simulator.states = list(state_vec)
+        simulator.states = np.array(state_vec)
         return simulator
 

@@ -8,7 +8,7 @@ import random
 from gates import Gate
 
 class GenericQuantumSimulator():
-    epsilon = 1e-12
+    epsilon = 1e-8
 
     def __init__(self):
         pass
