@@ -179,19 +179,15 @@ def EvaluateSwapTest(Sim_class, n_list=[8,10,12]):
         results[m] = {"runtime": runtime, "memory": mem, "max_nonzero_count": nz}
     return results
 
-# Plotting Function 
 def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison.png",
                  title_prefix="", use_log_scale=True):
     """
     Compare simulator performance across metrics and qubit counts.
-
-    Args:
-        results_dict (dict): Mapping from simulator name to results dict (from Evaluate).
-        save_dir (str): Directory where the plot should be saved.
-        filename (str): Output filename for the saved figure.
-        title_prefix (str): Optional prefix for plot titles (e.g., "QFT").
-        use_log_scale (bool): Whether to use log scale for y-axis.
+    Layout: 3 columns (one per metric), legend shown only on the last plot.
     """
+
+    import matplotlib.pyplot as plt
+    import os
 
     units = {
         "runtime": "Runtime (seconds)",
@@ -199,57 +195,66 @@ def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison.
         "max_nonzero_count": "Maximum Non-zero Amplitudes"
     }
 
-    # Define a palette of colors and markers
-    color_list = ['#1f77b4', '#ff7f0e', '#2ca02c',
-                  '#d62728', '#9467bd', '#8c564b',
-                  '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-    marker_list = ['o', 's', '^', 'D', '*', 'P', '<', '>', 'h', 'X']
+    # Base colors for circuit types
+    base_colors = {
+        "QFT": "#1f77b4",   # blue
+        "GHZ": "#2ca02c",   # green
+        "Adder": "#ff7f0e", # orange
+        "SWAP": "#9467bd"   # purple
+    }
 
-    all_keys = list(results_dict.keys())
-    color_map = {k: color_list[i % len(color_list)] for i, k in enumerate(all_keys)}
-    marker_map = {k: marker_list[i % len(marker_list)] for i, k in enumerate(all_keys)}
-
+    # Extract metrics dynamically
     sample_sim = next(iter(results_dict.values()))
     metrics = list(next(iter(sample_sim.values())).keys())
-    num_metrics = len(metrics)
-    n_cols = min(2, num_metrics)
-    n_rows = (num_metrics + n_cols - 1) // n_cols
-    fig, axs = plt.subplots(n_rows, n_cols, figsize=(7 * n_cols, 5 * n_rows), squeeze=False)
+
+    # Force exactly 3 columns (one row)
+    n_cols = len(metrics)
+    n_rows = 1
+    fig, axs = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 4.5), squeeze=False)
     axs = axs.flatten()
+
     for i, metric in enumerate(metrics):
         ax = axs[i]
         y_label = units.get(metric, metric.replace("_", " ").title())
+
         for sim_name, sim_results in results_dict.items():
             qubits = sorted(sim_results.keys())
             values = [sim_results[q][metric] for q in qubits]
-            marker = marker_map[sim_name]
-            color = color_map[sim_name]
-            ax.plot(qubits, values, marker=marker, linestyle='-', label=sim_name,
-                    color=color, markersize=7, alpha=0.85)
+
+            # Identify circuit type and simulator type
+            circuit_type = next((k for k in base_colors.keys() if k in sim_name), None)
+            color = base_colors.get(circuit_type, "#7f7f7f")
+            linestyle = "-" if "Dense" in sim_name else "--"
+
+            ax.plot(qubits, values, linestyle=linestyle, color=color,
+                    marker="o", label=sim_name, markersize=5, alpha=0.9)
+
         ax.set_xlabel("Number of qubits (n)")
         ax.set_ylabel(y_label)
-        plot_title = f"{title_prefix} {y_label} vs Number of Qubits" if title_prefix else f"{y_label} vs Number of Qubits"
-        ax.set_title(plot_title)
+        ax.set_title(f"{title_prefix} {y_label} vs Number of Qubits" if title_prefix else y_label)
+
         if use_log_scale:
-            # Ensure there are no zeros or negatives before switching to log scale
-            min_val = min([v for sim in results_dict.values() for v in [sim[q][metric] for q in sorted(sim.keys())]])
+            min_val = min([v for sim in results_dict.values()
+                           for v in [sim[q][metric] for q in sorted(sim.keys())]])
             if min_val > 0:
-                ax.set_yscale('log')
-        ax.grid(True, linestyle='--', alpha=0.7)
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=9)
-    for j in range(i + 1, len(axs)):
-        fig.delaxes(axs[j])
-    fig.tight_layout(rect=[0, 0, 0.85, 1])  
+                ax.set_yscale("log")
+
+        ax.grid(True, linestyle="--", alpha=0.7)
+
+        # ✅ Only put legend on the *last* subplot
+        if i == len(metrics) - 1:
+            ax.legend(loc="center left", bbox_to_anchor=(1.05, 0.5), fontsize=9)
+
+    # Clean layout
+    fig.tight_layout(rect=[0, 0, 0.88, 1])
+
+    # Save plot
     os.makedirs(save_dir, exist_ok=True)
     save_path = os.path.join(save_dir, filename)
     fig.savefig(save_path, dpi=300)
     print(f"Plot saved to: {save_path}")
-    print("Current working directory:", os.getcwd())
-    print("Absolute path:", os.path.abspath(save_path))
-    print(f"File exists after save: {os.path.exists(save_path)}")  # Check if file exists
     plt.show()
     plt.close(fig)
-
 
 
 # Main Script #TODO Swap Test takes super long for some reason, so I've commented it out
@@ -261,8 +266,8 @@ def main():
     res_sparse_ghz = Evaluate(SparseQuantumSimulator, n_list=num_qubits, circuit_method=make_ghz_gates)
     res_dense_adder = Evaluate(DenseQuantumSimulator, n_list=num_qubits, circuit_method=make_adder_gates)
     res_sparse_adder = Evaluate(SparseQuantumSimulator, n_list=num_qubits, circuit_method=make_adder_gates)
-    res_dense_swap = EvaluateSwapTest(DenseQuantumSimulator, n_list=num_qubits)
-    res_sparse_swap = EvaluateSwapTest(SparseQuantumSimulator, n_list=num_qubits)
+    """res_dense_swap = EvaluateSwapTest(DenseQuantumSimulator, n_list=num_qubits)
+    res_sparse_swap = EvaluateSwapTest(SparseQuantumSimulator, n_list=num_qubits)"""
     compare_sims({
         "Dense QFT": res_dense_qft,
         "Sparse QFT": res_sparse_qft,
@@ -270,8 +275,8 @@ def main():
         "Sparse GHZ": res_sparse_ghz,
         "Dense Adder": res_dense_adder,
         "Sparse Adder": res_sparse_adder,
-        "Dense SWAP Test": res_dense_swap,
-        "Sparse SWAP Test": res_sparse_swap
+        #"Dense SWAP Test": res_dense_swap,
+        #"Sparse SWAP Test": res_sparse_swap
     }, filename="simulator_comparison_all.png")
     # plot only QFT
     compare_sims({
@@ -289,10 +294,10 @@ def main():
         "Sparse Adder": res_sparse_adder
     }, filename="simulator_comparison_adder.png", title_prefix="Adder")
     # plot only SWAP
-    compare_sims({
+    """compare_sims({
          "Dense SWAP Test": res_dense_swap,
          "Sparse SWAP Test": res_sparse_swap
-     }, filename="simulator_comparison_swap.png", title_prefix="SWAP Test")
+     }, filename="simulator_comparison_swap.png", title_prefix="SWAP Test")"""
 
 if __name__ == "__main__":
     main()
