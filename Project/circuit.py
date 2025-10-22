@@ -179,15 +179,27 @@ def EvaluateSwapTest(Sim_class, n_list=[8,10,12]):
         results[m] = {"runtime": runtime, "memory": mem, "max_nonzero_count": nz}
     return results
 
-def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison.png",
+def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison",
                  title_prefix="", use_log_scale=True):
     """
     Compare simulator performance across metrics and qubit counts.
-    Layout: 3 columns (one per metric), legend shown only on the last plot.
+    Creates ONE plot per metric (no subplots). Each filename includes the y-axis label.
     """
 
     import matplotlib.pyplot as plt
+    plt.rc("font", size=16)
+    plt.rc("axes", titlesize=16, labelsize=16)
+    plt.rc("xtick", labelsize=16)
+    plt.rc("ytick", labelsize=16)
+    plt.rc("legend", fontsize=16)
+    plt.rc("figure", titlesize=16)
+
     import os
+    import re
+
+    def slug(s: str) -> str:
+        # Safe filename part from label (keep letters, numbers, . _ -)
+        return re.sub(r'[^A-Za-z0-9._-]+', '_', s.strip())
 
     units = {
         "runtime": "Runtime (seconds)",
@@ -207,21 +219,17 @@ def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison.
     sample_sim = next(iter(results_dict.values()))
     metrics = list(next(iter(sample_sim.values())).keys())
 
-    # Force exactly 3 columns (one row)
-    n_cols = len(metrics)
-    n_rows = 1
-    fig, axs = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 4.5), squeeze=False)
-    axs = axs.flatten()
+    os.makedirs(save_dir, exist_ok=True)
 
-    for i, metric in enumerate(metrics):
-        ax = axs[i]
+    for metric in metrics:
         y_label = units.get(metric, metric.replace("_", " ").title())
+
+        fig, ax = plt.subplots(figsize=(7.5, 5))
 
         for sim_name, sim_results in results_dict.items():
             qubits = sorted(sim_results.keys())
             values = [sim_results[q][metric] for q in qubits]
 
-            # Identify circuit type and simulator type
             circuit_type = next((k for k in base_colors.keys() if k in sim_name), None)
             color = base_colors.get(circuit_type, "#7f7f7f")
             linestyle = "-" if "Dense" in sim_name else "--"
@@ -231,30 +239,26 @@ def compare_sims(results_dict, save_dir="plots", filename="simulator_comparison.
 
         ax.set_xlabel("Number of qubits (n)")
         ax.set_ylabel(y_label)
-        ax.set_title(f"{title_prefix} {y_label} vs Number of Qubits" if title_prefix else y_label)
+        #ax.set_title(f"{title_prefix} {y_label} vs Number of Qubits" if title_prefix else y_label)
 
         if use_log_scale:
-            min_val = min([v for sim in results_dict.values()
-                           for v in [sim[q][metric] for q in sorted(sim.keys())]])
-            if min_val > 0:
+            # Use log scale only if all values are > 0
+            all_vals = [sim[q][metric] for sim in results_dict.values() for q in sorted(sim.keys())]
+            if len(all_vals) and min(all_vals) > 0:
                 ax.set_yscale("log")
 
         ax.grid(True, linestyle="--", alpha=0.7)
+        ax.legend(loc="upper left", fontsize=12, frameon=True)
 
-        # ✅ Only put legend on the *last* subplot
-        if i == len(metrics) - 1:
-            ax.legend(loc="center left", bbox_to_anchor=(1.05, 0.5), fontsize=9)
+        fig.tight_layout()
 
-    # Clean layout
-    fig.tight_layout(rect=[0, 0, 0.88, 1])
+        # Save name includes y_label (sanitized)
+        fname = f"{filename}__{slug(y_label)}.png"
+        save_path = os.path.join(save_dir, fname)
+        fig.savefig(save_path, dpi=300)
+        print(f"Plot saved to: {save_path}")
 
-    # Save plot
-    os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir, filename)
-    fig.savefig(save_path, dpi=300)
-    print(f"Plot saved to: {save_path}")
-    plt.show()
-    plt.close(fig)
+        plt.close(fig)
 
 
 # Main Script #TODO Swap Test takes super long for some reason, so I've commented it out
@@ -277,27 +281,27 @@ def main():
         "Sparse Adder": res_sparse_adder,
         #"Dense SWAP Test": res_dense_swap,
         #"Sparse SWAP Test": res_sparse_swap
-    }, filename="simulator_comparison_all.png")
+    }, filename="simulator_comparison_all")
     # plot only QFT
     compare_sims({
         "Dense QFT": res_dense_qft,
         "Sparse QFT": res_sparse_qft
-    }, filename="simulator_comparison_qft.png", title_prefix="QFT")
+    }, filename="simulator_comparison_qft", title_prefix="QFT")
     # plot only GHZ
     compare_sims({
         "Dense GHZ": res_dense_ghz,
         "Sparse GHZ": res_sparse_ghz
-    }, filename="simulator_comparison_ghz.png", title_prefix="GHZ")
+    }, filename="simulator_comparison_ghz", title_prefix="GHZ")
     # plot only Adder
     compare_sims({
         "Dense Adder": res_dense_adder,
         "Sparse Adder": res_sparse_adder
-    }, filename="simulator_comparison_adder.png", title_prefix="Adder")
+    }, filename="simulator_comparison_adder", title_prefix="Adder")
     # plot only SWAP
     """compare_sims({
          "Dense SWAP Test": res_dense_swap,
          "Sparse SWAP Test": res_sparse_swap
-     }, filename="simulator_comparison_swap.png", title_prefix="SWAP Test")"""
+     }, filename="simulator_comparison_swap", title_prefix="SWAP Test")"""
 
 if __name__ == "__main__":
     main()
