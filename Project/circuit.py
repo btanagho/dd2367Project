@@ -158,7 +158,7 @@ def Evaluate(Sim_class, n_list=[8,10,12], circuit_method=None):
         t1 = time.time()
         mem = tracemalloc.get_traced_memory()[1] / (1024**2)  # MB
         tracemalloc.stop()
-        nz = max_nonzero_count(sim.states)
+        nz = sim.non_zero_counts
         runtime = t1 - t0
         results[m] = {"runtime": runtime, "memory": mem, "max_nonzero_count": nz}
     return results
@@ -174,7 +174,7 @@ def EvaluateSwapTest(Sim_class, n_list=[8,10,12]):
         t1 = time.time()
         mem = tracemalloc.get_traced_memory()[1] / (1024**2)  # MB
         tracemalloc.stop()
-        nz = max_nonzero_count(sim.states)
+        nz = sim.non_zero_counts
         runtime = t1 - t0
         results[m] = {"runtime": runtime, "memory": mem, "max_nonzero_count": nz}
     return results

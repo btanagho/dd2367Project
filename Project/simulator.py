@@ -5,6 +5,12 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import random
 
+def max_nonzero_count(states):
+    if isinstance(states, dict):
+        return len([v for v in states.values() if abs(v) > 1e-12])
+    else:
+        return len([v for v in states if abs(v) > 1e-12])
+
 from gates import Gate
 
 class GenericQuantumSimulator():
@@ -22,6 +28,7 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
 
     def __init__(self, number_qubits:int = 5, states: dict[int,complex] =None):
         self.n = number_qubits
+        self.non_zero_counts=0
 
         if states is not None:
             if not isinstance(states, dict):
@@ -63,6 +70,7 @@ class SparseQuantumSimulator(GenericQuantumSimulator):
             gate.apply(self)
             filename = f"sparse_{i}"
             i += 1
+            self.non_zero_counts+=max_nonzero_count(self.states)
             #self.circ_plot(filename=filename)
 
 
@@ -129,6 +137,7 @@ class DenseQuantumSimulator(GenericQuantumSimulator):
     def __init__(self, number_qubits: int = 5, states: np.ndarray = None):
         self.n = number_qubits
         self.dim = 2 ** self.n
+        self.non_zero_counts=0
 
         if states is not None:
             states = np.asarray(states, dtype=np.complex128)
@@ -156,6 +165,8 @@ class DenseQuantumSimulator(GenericQuantumSimulator):
     def apply_circuit(self, circuit: list):
         for i, gate in enumerate(circuit):
             gate.apply(self)
+            self.non_zero_counts+=max_nonzero_count(self.states)
+
             # optional: self.circ_plot(filename=f"dense_{i}")
 
     def norm(self):
