@@ -114,7 +114,7 @@ def make_swap_test_gates(n):
 
 # SWAP Test Runner - needs its own runner since requires 2n + 1 qubits instead of the usual n
 def run_swap_test(QuantumSim, n):
-    total_qubits = 2 * n + 1
+    total_qubits = n + 1
     if QuantumSim is SparseQuantumSimulator:
         st = {0: 1.0 + 0.0j}
     elif QuantumSim is DenseQuantumSimulator:
@@ -270,8 +270,8 @@ def main():
     res_sparse_ghz = Evaluate(SparseQuantumSimulator, n_list=num_qubits, circuit_method=make_ghz_gates)
     res_dense_adder = Evaluate(DenseQuantumSimulator, n_list=num_qubits, circuit_method=make_adder_gates)
     res_sparse_adder = Evaluate(SparseQuantumSimulator, n_list=num_qubits, circuit_method=make_adder_gates)
-    """res_dense_swap = EvaluateSwapTest(DenseQuantumSimulator, n_list=num_qubits)
-    res_sparse_swap = EvaluateSwapTest(SparseQuantumSimulator, n_list=num_qubits)"""
+    res_dense_swap = EvaluateSwapTest(DenseQuantumSimulator, n_list=num_qubits)
+    res_sparse_swap = EvaluateSwapTest(SparseQuantumSimulator, n_list=num_qubits)
     compare_sims({
         "Dense QFT": res_dense_qft,
         "Sparse QFT": res_sparse_qft,
@@ -279,8 +279,8 @@ def main():
         "Sparse GHZ": res_sparse_ghz,
         "Dense Adder": res_dense_adder,
         "Sparse Adder": res_sparse_adder,
-        #"Dense SWAP Test": res_dense_swap,
-        #"Sparse SWAP Test": res_sparse_swap
+        "Dense SWAP Test": res_dense_swap,
+        "Sparse SWAP Test": res_sparse_swap
     }, filename="simulator_comparison_all")
     # plot only QFT
     compare_sims({
@@ -298,10 +298,10 @@ def main():
         "Sparse Adder": res_sparse_adder
     }, filename="simulator_comparison_adder", title_prefix="Adder")
     # plot only SWAP
-    """compare_sims({
+    compare_sims({
          "Dense SWAP Test": res_dense_swap,
          "Sparse SWAP Test": res_sparse_swap
-     }, filename="simulator_comparison_swap", title_prefix="SWAP Test")"""
+     }, filename="simulator_comparison_swap", title_prefix="SWAP Test")
 
 if __name__ == "__main__":
     main()
